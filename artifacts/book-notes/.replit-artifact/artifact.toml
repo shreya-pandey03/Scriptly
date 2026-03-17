@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Book Notes Organizer"
+version = "1.0.0"
+id = "artifacts/book-notes"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 18693
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/book-notes run dev"
+
+[services.env]
+PORT = "18693"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/book-notes", "run", "build"]
+publicDir = "artifacts/book-notes/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

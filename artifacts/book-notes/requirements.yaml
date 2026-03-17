@@ -1,0 +1,25 @@
+packages:
+  "zustand": "State management for auth and real-time collaboration"
+  "socket.io-client": "Real-time WebSocket connection for editing indicators"
+  "framer-motion": "Smooth animations for UI elements and page transitions"
+  "react-hook-form": "Form state management and validation"
+  "@hookform/resolvers": "Zod integration for react-hook-form"
+  "date-fns": "Formatting dates for notes and quotes"
+  "clsx": "Class merging utility"
+  "tailwind-merge": "Tailwind class merging utility"
+
+images:
+  - path: "artifacts/book-notes/public/images/auth-bg.png"
+    description: "Warm, cozy, aesthetically pleasing library interior with soft amber lighting, comfortable reading chairs, and elegant bookshelves. High quality, cinematic lighting."
+    aspect_ratio: "16:9"
+  - path: "artifacts/book-notes/public/images/empty-bookshelf.png"
+    description: "A beautiful, minimalist vector illustration of a warm wooden bookshelf that is mostly empty except for a small, elegant potted pothos plant. Earthy, warm colors."
+    aspect_ratio: "1:1"
+  - path: "artifacts/book-notes/public/images/empty-notes.png"
+    description: "A beautiful, minimalist illustration of an open notebook with blank pages and a nice fountain pen resting on it. Warm, natural tones."
+    aspect_ratio: "1:1"
+
+notes:
+  - The API exposes endpoints under /api.
+  - JWT Auth is stored in localStorage as 'auth-token'.
+  - Socket.io uses the /api/socket.io path.
