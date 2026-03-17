@@ -14,35 +14,21 @@ const router: IRouter = Router({ mergeParams: true });
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     const bookId = parseInt(req.params["bookId"] ?? "");
-    if (isNaN(bookId)) {
-      res.status(400).json({ error: "Invalid book ID" });
-      return;
-    }
+    if (isNaN(bookId)) { res.status(400).json({ error: "Invalid book ID" }); return; }
 
     const search = req.query["search"] as string | undefined;
 
-    const [book] = await db
-      .select()
-      .from(booksTable)
-      .where(and(eq(booksTable.id, bookId), eq(booksTable.userId, req.user!.userId)))
-      .limit(1);
+    const [book] = await db.select().from(booksTable).where(
+      and(eq(booksTable.id, bookId), eq(booksTable.userId, req.user!.userId))
+    ).limit(1);
+    if (!book) { res.status(404).json({ error: "Book not found" }); return; }
 
-    if (!book) {
-      res.status(404).json({ error: "Book not found" });
-      return;
-    }
+    const notes = await db.select().from(notesTable).where(
+      search
+        ? and(eq(notesTable.bookId, bookId), ilike(notesTable.content, `%${search}%`))
+        : eq(notesTable.bookId, bookId)
+    ).orderBy(asc(notesTable.chapterNumber), asc(notesTable.createdAt));
 
-    const query = db
-      .select()
-      .from(notesTable)
-      .where(
-        search
-          ? and(eq(notesTable.bookId, bookId), ilike(notesTable.content, `%${search}%`))
-          : eq(notesTable.bookId, bookId)
-      )
-      .orderBy(asc(notesTable.chapterNumber), asc(notesTable.createdAt));
-
-    const notes = await query;
     res.json(notes.map((n) => ({ ...n, editingBy: null })));
   } catch (err) {
     console.error("Get notes error:", err);
@@ -53,39 +39,25 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     const bookId = parseInt(req.params["bookId"] ?? "");
-    if (isNaN(bookId)) {
-      res.status(400).json({ error: "Invalid book ID" });
-      return;
-    }
+    if (isNaN(bookId)) { res.status(400).json({ error: "Invalid book ID" }); return; }
 
-    const [book] = await db
-      .select()
-      .from(booksTable)
-      .where(and(eq(booksTable.id, bookId), eq(booksTable.userId, req.user!.userId)))
-      .limit(1);
-
-    if (!book) {
-      res.status(404).json({ error: "Book not found" });
-      return;
-    }
+    const [book] = await db.select().from(booksTable).where(
+      and(eq(booksTable.id, bookId), eq(booksTable.userId, req.user!.userId))
+    ).limit(1);
+    if (!book) { res.status(404).json({ error: "Book not found" }); return; }
 
     const { chapter, chapterNumber, content } = req.body;
+    if (!content) { res.status(400).json({ error: "content is required" }); return; }
 
-    if (!content) {
-      res.status(400).json({ error: "content is required" });
-      return;
-    }
+    const [note] = await db.insert(notesTable).values({
+      bookId, userId: req.user!.userId,
+      chapter: chapter ?? null, chapterNumber: chapterNumber ?? null, content,
+    }).returning();
 
-    const [note] = await db
-      .insert(notesTable)
-      .values({
-        bookId,
-        userId: req.user!.userId,
-        chapter: chapter ?? null,
-        chapterNumber: chapterNumber ?? null,
-        content,
-      })
-      .returning();
+    // Broadcast to book room (excluding the sender via socket would require socket ref; using io.to instead)
+    global.io?.to(`book-${bookId}`).emit("note:created", {
+      bookId, noteId: note.id, username: req.user!.username,
+    });
 
     res.status(201).json({ ...note, editingBy: null });
   } catch (err) {
@@ -98,21 +70,12 @@ router.get("/:noteId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const bookId = parseInt(req.params["bookId"] ?? "");
     const noteId = parseInt(req.params["noteId"] ?? "");
-    if (isNaN(bookId) || isNaN(noteId)) {
-      res.status(400).json({ error: "Invalid ID" });
-      return;
-    }
+    if (isNaN(bookId) || isNaN(noteId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-    const [note] = await db
-      .select()
-      .from(notesTable)
-      .where(and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId)))
-      .limit(1);
-
-    if (!note) {
-      res.status(404).json({ error: "Note not found" });
-      return;
-    }
+    const [note] = await db.select().from(notesTable).where(
+      and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId))
+    ).limit(1);
+    if (!note) { res.status(404).json({ error: "Note not found" }); return; }
 
     res.json({ ...note, editingBy: null });
   } catch (err) {
@@ -125,34 +88,25 @@ router.patch("/:noteId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const bookId = parseInt(req.params["bookId"] ?? "");
     const noteId = parseInt(req.params["noteId"] ?? "");
-    if (isNaN(bookId) || isNaN(noteId)) {
-      res.status(400).json({ error: "Invalid ID" });
-      return;
-    }
+    if (isNaN(bookId) || isNaN(noteId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-    const [existing] = await db
-      .select()
-      .from(notesTable)
-      .where(and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId)))
-      .limit(1);
-
-    if (!existing) {
-      res.status(404).json({ error: "Note not found" });
-      return;
-    }
+    const [existing] = await db.select().from(notesTable).where(
+      and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId))
+    ).limit(1);
+    if (!existing) { res.status(404).json({ error: "Note not found" }); return; }
 
     const { chapter, chapterNumber, content } = req.body;
 
-    const [updated] = await db
-      .update(notesTable)
-      .set({
-        ...(chapter !== undefined && { chapter }),
-        ...(chapterNumber !== undefined && { chapterNumber }),
-        ...(content !== undefined && { content }),
-        updatedAt: new Date(),
-      })
-      .where(eq(notesTable.id, noteId))
-      .returning();
+    const [updated] = await db.update(notesTable).set({
+      ...(chapter !== undefined && { chapter }),
+      ...(chapterNumber !== undefined && { chapterNumber }),
+      ...(content !== undefined && { content }),
+      updatedAt: new Date(),
+    }).where(eq(notesTable.id, noteId)).returning();
+
+    global.io?.to(`book-${bookId}`).emit("note:updated", {
+      bookId, noteId, username: req.user!.username,
+    });
 
     res.json({ ...updated, editingBy: null });
   } catch (err) {
@@ -165,23 +119,18 @@ router.delete("/:noteId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const bookId = parseInt(req.params["bookId"] ?? "");
     const noteId = parseInt(req.params["noteId"] ?? "");
-    if (isNaN(bookId) || isNaN(noteId)) {
-      res.status(400).json({ error: "Invalid ID" });
-      return;
-    }
+    if (isNaN(bookId) || isNaN(noteId)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-    const [existing] = await db
-      .select()
-      .from(notesTable)
-      .where(and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId)))
-      .limit(1);
-
-    if (!existing) {
-      res.status(404).json({ error: "Note not found" });
-      return;
-    }
+    const [existing] = await db.select().from(notesTable).where(
+      and(eq(notesTable.id, noteId), eq(notesTable.bookId, bookId))
+    ).limit(1);
+    if (!existing) { res.status(404).json({ error: "Note not found" }); return; }
 
     await db.delete(notesTable).where(eq(notesTable.id, noteId));
+
+    global.io?.to(`book-${bookId}`).emit("note:deleted", {
+      bookId, noteId, username: req.user!.username,
+    });
 
     res.status(204).send();
   } catch (err) {
