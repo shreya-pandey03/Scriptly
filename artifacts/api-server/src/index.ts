@@ -1,7 +1,10 @@
+import "dotenv/config";
 import { createServer } from "http";
 import { Server as SocketServer } from "socket.io";
 import app from "./app.js";
 import { verifyToken } from "./lib/jwt.js";
+
+
 
 const rawPort = process.env["PORT"];
 if (!rawPort) throw new Error("PORT environment variable is required.");
@@ -104,6 +107,10 @@ io.on("connection", (socket) => {
       }
     }
   });
+});
+
+app.get("/", (_req, res) => {
+  res.send("API is running ");
 });
 
 httpServer.listen(port, () => {
