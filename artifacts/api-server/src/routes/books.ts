@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const search = req.query["search"] as string | undefined;
+    const search = (req.query["search"] as string | undefined)?.trim();
     const userId = req.user!.userId;
 
     const baseQuery = db
@@ -64,12 +64,15 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { title, author, description, coverColor } = req.body;
+    let { title, author, description, coverColor } = req.body;
 
     if (!title || !author) {
       res.status(400).json({ error: "title and author are required" });
       return;
     }
+
+    title = title.trim();
+    author = author.trim();
 
     const [book] = await db
       .insert(booksTable)
@@ -91,8 +94,8 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 
 router.get("/:bookId", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const bookId = parseInt(req.params["bookId"] ?? "");
-    if (isNaN(bookId)) {
+    const bookId = Number(req.params["bookId"]);
+    if (!Number.isInteger(bookId)) {
       res.status(400).json({ error: "Invalid book ID" });
       return;
     }
@@ -131,8 +134,8 @@ router.get("/:bookId", requireAuth, async (req: AuthRequest, res) => {
 
 router.patch("/:bookId", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const bookId = parseInt(req.params["bookId"] ?? "");
-    if (isNaN(bookId)) {
+    const bookId = Number(req.params["bookId"]);
+    if (!Number.isInteger(bookId)) {
       res.status(400).json({ error: "Invalid book ID" });
       return;
     }
@@ -148,13 +151,13 @@ router.patch("/:bookId", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const { title, author, description, coverColor } = req.body;
+    let { title, author, description, coverColor } = req.body;
 
     const [updated] = await db
       .update(booksTable)
       .set({
-        ...(title !== undefined && { title }),
-        ...(author !== undefined && { author }),
+        ...(title !== undefined && { title: title.trim() }),
+        ...(author !== undefined && { author: author.trim() }),
         ...(description !== undefined && { description }),
         ...(coverColor !== undefined && { coverColor }),
         updatedAt: new Date(),
@@ -185,8 +188,8 @@ router.patch("/:bookId", requireAuth, async (req: AuthRequest, res) => {
 
 router.delete("/:bookId", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const bookId = parseInt(req.params["bookId"] ?? "");
-    if (isNaN(bookId)) {
+    const bookId = Number(req.params["bookId"]);
+    if (!Number.isInteger(bookId)) {
       res.status(400).json({ error: "Invalid book ID" });
       return;
     }

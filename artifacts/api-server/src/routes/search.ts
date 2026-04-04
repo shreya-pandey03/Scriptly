@@ -7,7 +7,7 @@ const router: IRouter = Router();
 
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const q = req.query["q"] as string;
+    const q = (req.query["q"] as string | undefined)?.trim();
 
     if (!q) {
       res.status(400).json({ error: "q query parameter is required" });
@@ -15,18 +15,6 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const userId = req.user!.userId;
-
-    const userBooks = await db
-      .select({ id: booksTable.id })
-      .from(booksTable)
-      .where(eq(booksTable.userId, userId));
-
-    const bookIds = userBooks.map((b) => b.id);
-
-    if (bookIds.length === 0) {
-      res.json({ notes: [], quotes: [] });
-      return;
-    }
 
     const notesResults = await db
       .select({
@@ -38,7 +26,12 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
       })
       .from(notesTable)
       .innerJoin(booksTable, eq(notesTable.bookId, booksTable.id))
-      .where(and(eq(booksTable.userId, userId), ilike(notesTable.content, `%${q}%`)))
+      .where(
+        and(
+          eq(booksTable.userId, userId),
+          ilike(notesTable.content, `%${q}%`)
+        )
+      )
       .limit(20);
 
     const quotesResults = await db
@@ -51,7 +44,12 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
       })
       .from(quotesTable)
       .innerJoin(booksTable, eq(quotesTable.bookId, booksTable.id))
-      .where(and(eq(booksTable.userId, userId), ilike(quotesTable.text, `%${q}%`)))
+      .where(
+        and(
+          eq(booksTable.userId, userId),
+          ilike(quotesTable.text, `%${q}%`)
+        )
+      )
       .limit(20);
 
     res.json({ notes: notesResults, quotes: quotesResults });

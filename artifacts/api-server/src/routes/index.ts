@@ -8,7 +8,7 @@ import searchRouter from "./search.js";
 
 const router: IRouter = Router();
 
-router.use(healthRouter);
+router.use("/", healthRouter);
 router.use("/auth", authRouter);
 router.use("/books", booksRouter);
 router.use("/books/:bookId/notes", notesRouter);

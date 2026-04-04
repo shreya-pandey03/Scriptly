@@ -9,12 +9,15 @@ const router: IRouter = Router();
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    let { username, email, password } = req.body;
 
     if (!username || !email || !password) {
       res.status(400).json({ error: "username, email, and password are required" });
       return;
     }
+
+    username = username.trim();
+    email = email.toLowerCase().trim();
 
     if (username.length < 3) {
       res.status(400).json({ error: "Username must be at least 3 characters" });
@@ -55,7 +58,11 @@ router.post("/register", async (req, res) => {
       .values({ username, email, passwordHash })
       .returning();
 
-    const token = signToken({ userId: user.id, email: user.email, username: user.username });
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+    });
 
     res.status(201).json({
       token,
@@ -74,12 +81,14 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       res.status(400).json({ error: "email and password are required" });
       return;
     }
+
+    email = email.toLowerCase().trim();
 
     const [user] = await db
       .select()
@@ -98,7 +107,11 @@ router.post("/login", async (req, res) => {
       return;
     }
 
-    const token = signToken({ userId: user.id, email: user.email, username: user.username });
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+    });
 
     res.json({
       token,
