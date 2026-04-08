@@ -1,10 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora&family=Nunito&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Lora&family=Nunito&display=swap');
-
+/* CSS Variables */
 :root {
   --background: 40 33% 98%;
   --foreground: 20 14% 16%;
@@ -22,6 +22,7 @@
   --primary: 24 80% 60%;
 }
 
+/* Base styles */
 @layer base {
   * {
     border-color: hsl(var(--border));
@@ -29,5 +30,10 @@
 
   body {
     @apply bg-background text-foreground font-sans;
+    font-family: "Nunito", sans-serif;
+  }
+
+  .font-serif {
+    font-family: "Lora", serif;
   }
 }

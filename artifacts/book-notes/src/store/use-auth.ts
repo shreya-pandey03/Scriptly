@@ -10,24 +10,35 @@ interface AuthState {
   updateUser: (user: User) => void;
 }
 
-const initialToken = localStorage.getItem("auth-token");
+const getInitialToken = () => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth-token");
+};
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  token: initialToken,
-  isAuthenticated: !!initialToken,
-  
-  setAuth: (user, token) => {
-    localStorage.setItem("auth-token", token);
-    set({ user, token, isAuthenticated: true });
-  },
-  
-  logout: () => {
-    localStorage.removeItem("auth-token");
-    set({ user: null, token: null, isAuthenticated: false });
-  },
-  
-  updateUser: (user) => {
-    set({ user });
-  }
-}));
+export const useAuthStore = create<AuthState>((set) => {
+  const initialToken = getInitialToken();
+
+  return {
+    user: null,
+    token: initialToken,
+    isAuthenticated: !!initialToken,
+
+    setAuth: (user, token) => {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("auth-token", token);
+      }
+      set({ user, token, isAuthenticated: true });
+    },
+
+    logout: () => {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth-token");
+      }
+      set({ user: null, token: null, isAuthenticated: false });
+    },
+
+    updateUser: (user) => {
+      set({ user });
+    },
+  };
+});

@@ -24,13 +24,15 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
+  const authHeaders = getAuthHeaders();
+
   const { data: books, isLoading, error } = useGetBooks(
     { search: search || undefined }, 
-    { request: { headers: getAuthHeaders() } }
+    { request: { headers: authHeaders ? { Authorization: authHeaders.Authorization } : undefined } }
   );
 
   const createBookMutation = useCreateBook({
-    request: { headers: getAuthHeaders() }
+    request: { headers: authHeaders ? { Authorization: authHeaders.Authorization } : undefined }
   });
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<CreateBookForm>({

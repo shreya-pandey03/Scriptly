@@ -9,6 +9,8 @@ interface ThemeState {
 }
 
 function applyTheme(theme: Theme) {
+  if (typeof document === "undefined") return;
+
   const root = document.documentElement;
   if (theme === "dark") {
     root.classList.add("dark");
@@ -17,20 +19,31 @@ function applyTheme(theme: Theme) {
   }
 }
 
-const saved = (localStorage.getItem("theme") as Theme | null) ?? "light";
-applyTheme(saved);
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  return (localStorage.getItem("theme") as Theme | null) ?? "light";
+}
+
+const initialTheme = getInitialTheme();
+applyTheme(initialTheme);
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  theme: saved,
+  theme: initialTheme,
+
   toggle: () =>
     set((state) => {
       const next: Theme = state.theme === "light" ? "dark" : "light";
-      localStorage.setItem("theme", next);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("theme", next);
+      }
       applyTheme(next);
       return { theme: next };
     }),
+
   setTheme: (theme) => {
-    localStorage.setItem("theme", theme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme", theme);
+    }
     applyTheme(theme);
     set({ theme });
   },

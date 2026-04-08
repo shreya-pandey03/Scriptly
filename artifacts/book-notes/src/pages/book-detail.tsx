@@ -55,17 +55,17 @@ export default function BookDetail() {
   const othersPresent = presence.filter((p) => p.userId !== user?.id);
 
   // Queries
-  const { data: book, isLoading: isBookLoading } = useGetBook(id, { request: { headers: getAuthHeaders() } });
-  const { data: notes, isLoading: isNotesLoading } = useGetNotes(id, undefined, { request: { headers: getAuthHeaders() } });
-  const { data: quotes, isLoading: isQuotesLoading } = useGetQuotes(id, undefined, { request: { headers: getAuthHeaders() } });
+  const { data: book, isLoading: isBookLoading } = useGetBook(id, { request: { headers: getAuthHeaders() as Record<string, string> } });
+  const { data: notes, isLoading: isNotesLoading } = useGetNotes(id, undefined, { request: { headers: getAuthHeaders() as Record<string, string> } });
+  const { data: quotes, isLoading: isQuotesLoading } = useGetQuotes(id, undefined, { request: { headers: getAuthHeaders() as Record<string, string> } });
 
   // Mutations
-  const createNote = useCreateNote({ request: { headers: getAuthHeaders() } });
-  const updateNote = useUpdateNote({ request: { headers: getAuthHeaders() } });
-  const deleteNote = useDeleteNote({ request: { headers: getAuthHeaders() } });
-  const createQuote = useCreateQuote({ request: { headers: getAuthHeaders() } });
-  const updateQuote = useUpdateQuote({ request: { headers: getAuthHeaders() } });
-  const deleteQuote = useDeleteQuote({ request: { headers: getAuthHeaders() } });
+  const createNote = useCreateNote({ request: { headers: getAuthHeaders() as Record<string, string> } });
+  const updateNote = useUpdateNote({ request: { headers: getAuthHeaders() as Record<string, string> } });
+  const deleteNote = useDeleteNote({ request: { headers: getAuthHeaders() as Record<string, string> } });
+  const createQuote = useCreateQuote({ request: { headers: getAuthHeaders() as Record<string, string> } });
+  const updateQuote = useUpdateQuote({ request: { headers: getAuthHeaders() as Record<string, string> } });
+  const deleteQuote = useDeleteQuote({ request: { headers: getAuthHeaders() as Record<string, string> } });
 
   // Join/leave book room for presence & real-time events
   useEffect(() => {
