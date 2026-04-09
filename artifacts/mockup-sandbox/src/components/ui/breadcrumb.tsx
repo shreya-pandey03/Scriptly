@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils"
 
 const Breadcrumb = React.forwardRef<
   HTMLElement,
-  React.ComponentPropsWithoutRef<"nav"> & {
-    separator?: React.ReactNode
-  }
->(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />)
+  React.ComponentPropsWithoutRef<"nav">
+>(({ ...props }, ref) => (
+  <nav ref={ref} aria-label="breadcrumb" {...props} />
+))
 Breadcrumb.displayName = "Breadcrumb"
 
 const BreadcrumbList = React.forwardRef<
@@ -102,7 +102,7 @@ const BreadcrumbEllipsis = ({
     <span className="sr-only">More</span>
   </span>
 )
-BreadcrumbEllipsis.displayName = "BreadcrumbElipssis"
+BreadcrumbEllipsis.displayName = "BreadcrumbEllipsis"
 
 export {
   Breadcrumb,

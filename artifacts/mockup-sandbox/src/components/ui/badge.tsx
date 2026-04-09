@@ -4,18 +4,18 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
-  " hover-elevate ",
+  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:opacity-90",
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground shadow-xs",
+          "border-transparent bg-primary text-primary-foreground shadow-sm",
         secondary:
           "border-transparent bg-secondary text-secondary-foreground",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow-xs",
-        outline: "text-foreground border [border-color:var(--badge-outline)]",
+          "border-transparent bg-destructive text-destructive-foreground shadow-sm",
+        outline:
+          "text-foreground border border-border bg-transparent",
       },
     },
     defaultVariants: {
@@ -30,7 +30,10 @@ export interface BadgeProps
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
   )
 }
 

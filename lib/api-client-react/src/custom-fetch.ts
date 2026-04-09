@@ -1,6 +1,6 @@
 // custom-fetch.ts
 
-const API_BASE_URL = "http://localhost:5001"; // ✅ FIXED (removed /api)
+const API_BASE_URL = "http://localhost:5001";
 
 export type CustomFetchOptions = RequestInit & {
   responseType?: "json" | "text" | "blob" | "auto";
@@ -12,7 +12,6 @@ export type BodyType<T> = T;
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
-// ----------------- Helpers -----------------
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
   const headers = new Headers();
   for (const source of sources) {
@@ -39,15 +38,14 @@ function hasNoBody(response: Response, method: string): boolean {
   return false;
 }
 
-// ----------------- Errors -----------------
 function buildErrorMessage(response: Response, data: unknown) {
   const prefix = `HTTP ${response.status} ${response.statusText}`;
   if (!data) return prefix;
   if (typeof data === "string") return `${prefix}: ${data.slice(0, 300)}`;
   const message =
-    (data as any).message ||
-    (data as any).error ||
-    (data as any).detail;
+    (data as any)?.message ||
+    (data as any)?.error ||
+    (data as any)?.detail;
   return message ? `${prefix}: ${message}` : prefix;
 }
 
@@ -62,7 +60,6 @@ export class ApiError<T = unknown> extends Error {
   }
 }
 
-// ----------------- Main Fetch -----------------
 export async function customFetch<T = unknown>(
   path: string,
   options: CustomFetchOptions = {}
@@ -71,14 +68,12 @@ export async function customFetch<T = unknown>(
 
   const method = (init.method || "GET").toUpperCase();
 
-  // ✅ FIXED URL JOIN
   const url = path.startsWith("http")
     ? path
     : `${API_BASE_URL}${path}`;
 
   const headers = mergeHeaders(headersInit);
 
-  // ✅ Inject token
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("auth-token");
     if (token) {
@@ -86,8 +81,7 @@ export async function customFetch<T = unknown>(
     }
   }
 
-  // ✅ JSON body handling
-  if (init.body && typeof init.body === "object") {
+  if (init.body && typeof init.body === "object" && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
     init.body = JSON.stringify(init.body);
   }
@@ -100,20 +94,31 @@ export async function customFetch<T = unknown>(
     headers,
   });
 
-  // ❌ Error handling
   if (!res.ok) {
-    let errorData = null;
+    let errorData: unknown = null;
     try {
-      errorData = await res.json();
+      const mediaType = getMediaType(res.headers);
+      if (isJsonMediaType(mediaType)) {
+        errorData = await res.json();
+      } else {
+        errorData = await res.text();
+      }
     } catch {
-      errorData = await res.text();
+      errorData = null;
     }
     throw new ApiError(res, errorData);
   }
 
-  // ✅ No content
   if (hasNoBody(res, method)) return {} as T;
 
-  // ✅ Parse JSON
-  return res.json();
+  const mediaType = getMediaType(res.headers);
+
+  if (responseType === "text") return (await res.text()) as unknown as T;
+  if (responseType === "blob") return (await res.blob()) as unknown as T;
+
+  if (responseType === "json" || (responseType === "auto" && isJsonMediaType(mediaType))) {
+    return (await res.json()) as T;
+  }
+
+  return (await res.text()) as unknown as T;
 }

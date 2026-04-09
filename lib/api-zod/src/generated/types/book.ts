@@ -10,13 +10,11 @@ export interface Book {
   id: number;
   title: string;
   author: string;
-  /** @nullable */
   description: string | null;
-  /** @nullable */
   coverColor: string | null;
   userId: number;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   noteCount: number;
   quoteCount: number;
 }

@@ -6,6 +6,7 @@
     "codegen": "orval --config ./orval.config.ts"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
     "orval": "^8.5.2",
     "zod": "^3.25.76"
   }
