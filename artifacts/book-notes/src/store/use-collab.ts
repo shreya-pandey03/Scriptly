@@ -38,37 +38,39 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     if (typeof window === "undefined") return;
 
     const token = useAuthStore.getState().token;
-    if (!token || get().socket?.connected) return;
 
-    const socket = io(window.location.origin, {
-      path: "/api/socket.io",
+    // ❗ prevent multiple connections
+    if (!token || get().socket) return;
+
+    const socket = io("http://localhost:5001", {
+       path: "/api/socket.io",
       auth: { token },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      timeout: 10000,
     });
 
     socket.on("connect", () => {
-      console.log("Collab socket connected");
+      console.log("🟢 Socket connected:", socket.id);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Collab socket disconnected");
+    socket.on("disconnect", (reason) => {
+      console.log(" Socket disconnected:", reason);
     });
 
     socket.on("connect_error", (err) => {
-      console.error("Socket error:", err.message);
+      console.error(" Socket error:", err.message);
     });
 
-    // Editing indicators
-    socket.on(
-      "editing:start",
-      ({ noteId, username }: { noteId: number; username: string }) => {
-        set((state) => ({
-          editingStatus: { ...state.editingStatus, [noteId]: username },
-        }));
-      }
-    );
+    // Editing
+    socket.on("editing:start", ({ noteId, username }) => {
+      set((state) => ({
+        editingStatus: { ...state.editingStatus, [noteId]: username },
+      }));
+    });
 
-    socket.on("editing:stop", ({ noteId }: { noteId: number }) => {
+    socket.on("editing:stop", ({ noteId }) => {
       set((state) => {
         const next = { ...state.editingStatus };
         delete next[noteId];
@@ -77,56 +79,38 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     });
 
     // Presence
-    socket.on(
-      "presence:update",
-      ({ bookId, users }: { bookId: number; users: PresenceUser[] }) => {
-        set((state) => ({
-          presenceByBook: { ...state.presenceByBook, [bookId]: users },
-        }));
-      }
-    );
+    socket.on("presence:update", ({ bookId, users }) => {
+      set((state) => ({
+        presenceByBook: { ...state.presenceByBook, [bookId]: users },
+      }));
+    });
 
     // Notes
-    socket.on(
-      "note:created",
-      ({ bookId, username }: { bookId: number; username: string }) => {
-        get().onNoteChange?.(bookId);
-        get().onNoteActivity?.(`${username} added a new note`);
-      }
-    );
+    socket.on("note:created", ({ bookId, username }) => {
+      get().onNoteChange?.(bookId);
+      get().onNoteActivity?.(`${username} added a new note`);
+    });
 
-    socket.on(
-      "note:updated",
-      ({ bookId, username }: { bookId: number; username: string }) => {
-        get().onNoteChange?.(bookId);
-        get().onNoteActivity?.(`${username} updated a note`);
-      }
-    );
+    socket.on("note:updated", ({ bookId, username }) => {
+      get().onNoteChange?.(bookId);
+      get().onNoteActivity?.(`${username} updated a note`);
+    });
 
-    socket.on(
-      "note:deleted",
-      ({ bookId, username }: { bookId: number; username: string }) => {
-        get().onNoteChange?.(bookId);
-        get().onNoteActivity?.(`${username} deleted a note`);
-      }
-    );
+    socket.on("note:deleted", ({ bookId, username }) => {
+      get().onNoteChange?.(bookId);
+      get().onNoteActivity?.(`${username} deleted a note`);
+    });
 
     // Quotes
-    socket.on(
-      "quote:created",
-      ({ bookId, username }: { bookId: number; username: string }) => {
-        get().onQuoteChange?.(bookId);
-        get().onNoteActivity?.(`${username} highlighted a new quote`);
-      }
-    );
+    socket.on("quote:created", ({ bookId, username }) => {
+      get().onQuoteChange?.(bookId);
+      get().onNoteActivity?.(`${username} highlighted a quote`);
+    });
 
-    socket.on(
-      "quote:deleted",
-      ({ bookId, username }: { bookId: number; username: string }) => {
-        get().onQuoteChange?.(bookId);
-        get().onNoteActivity?.(`${username} removed a quote`);
-      }
-    );
+    socket.on("quote:deleted", ({ bookId, username }) => {
+      get().onQuoteChange?.(bookId);
+      get().onNoteActivity?.(`${username} removed a quote`);
+    });
 
     set({ socket });
   },
@@ -135,37 +119,32 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     const { socket } = get();
     if (socket) {
       socket.disconnect();
-      set({ socket: null, editingStatus: {}, presenceByBook: {} });
+      set({
+        socket: null,
+        editingStatus: {},
+        presenceByBook: {},
+      });
     }
   },
 
-  startEditing: (noteId: number) => {
+  startEditing: (noteId) => {
     const { socket } = get();
-    const user = useAuthStore.getState().user;
-    if (socket && user) {
-      socket.emit("editing:start", { noteId });
-    }
+    if (socket) socket.emit("editing:start", { noteId });
   },
 
-  stopEditing: (noteId: number) => {
+  stopEditing: (noteId) => {
     const { socket } = get();
-    if (socket) {
-      socket.emit("editing:stop", { noteId });
-    }
+    if (socket) socket.emit("editing:stop", { noteId });
   },
 
-  joinBook: (bookId: number) => {
+  joinBook: (bookId) => {
     const { socket } = get();
-    if (socket) {
-      socket.emit("book:join", { bookId });
-    }
+    if (socket) socket.emit("book:join", { bookId });
   },
 
-  leaveBook: (bookId: number) => {
+  leaveBook: (bookId) => {
     const { socket } = get();
-    if (socket) {
-      socket.emit("book:leave", { bookId });
-    }
+    if (socket) socket.emit("book:leave", { bookId });
   },
 
   setNoteChangeHandler: (fn) => set({ onNoteChange: fn }),

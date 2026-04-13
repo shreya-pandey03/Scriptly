@@ -9,6 +9,7 @@ declare global {
   var io: SocketServer | undefined;
 }
 
+// ✅ Validate PORT
 const rawPort = process.env.PORT;
 if (!rawPort) throw new Error("PORT environment variable is required.");
 
@@ -17,12 +18,14 @@ if (!Number.isInteger(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+// ✅ Create HTTP server
 const httpServer = createServer(app);
 
+// ✅ Attach Socket.IO to SAME server
 const io = new SocketServer(httpServer, {
-  path: "/api/socket.io",
+  path: "/api/socket.io", // ⚠️ MUST match frontend
   cors: {
-    origin: true,
+    origin: "http://localhost:3000", // 🔥 better than origin: true
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -30,10 +33,14 @@ const io = new SocketServer(httpServer, {
 
 global.io = io;
 
+// 🔐 Auth middleware
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token as string | undefined;
 
+  console.log("🔐 Incoming token:", token); // ✅ debug
+
   if (!token) {
+    console.log("❌ Missing token");
     return next(new Error("Authentication error: missing token"));
   }
 
@@ -42,24 +49,26 @@ io.use((socket, next) => {
     (socket as any).user = payload;
     return next();
   } catch {
+    console.log("❌ Invalid token");
     return next(new Error("Authentication error: invalid token"));
   }
 });
 
+// 📦 State
 const editingMap = new Map<number, string>();
+
 const bookPresence = new Map<
   number,
   Map<string, { userId: number; username: string }>
 >();
 
-function getBookPresenceList(
-  bookId: number
-): Array<{ userId: number; username: string }> {
+function getBookPresenceList(bookId: number) {
   const room = bookPresence.get(bookId);
   if (!room) return [];
   return Array.from(room.values());
 }
 
+// 🔌 Socket connection
 io.on("connection", (socket) => {
   const user = (socket as any).user as {
     userId: number;
@@ -67,12 +76,14 @@ io.on("connection", (socket) => {
     email: string;
   };
 
-  console.log(`Socket connected: ${user?.username ?? "unknown"} (${socket.id})`);
+  console.log(`🟢 Socket connected: ${user?.username} (${socket.id})`);
 
+  // ✏️ Editing
   socket.on("editing:start", ({ noteId }: { noteId: number }) => {
     if (!noteId || !user) return;
 
     editingMap.set(noteId, user.username);
+
     socket.broadcast.emit("editing:start", {
       noteId,
       username: user.username,
@@ -83,9 +94,11 @@ io.on("connection", (socket) => {
     if (!noteId) return;
 
     editingMap.delete(noteId);
+
     socket.broadcast.emit("editing:stop", { noteId });
   });
 
+  // 📚 Join book
   socket.on("book:join", ({ bookId }: { bookId: number }) => {
     if (!bookId || !user) return;
 
@@ -100,10 +113,13 @@ io.on("connection", (socket) => {
       .get(bookId)!
       .set(socket.id, { userId: user.userId, username: user.username });
 
-    const users = getBookPresenceList(bookId);
-    io.to(roomName).emit("presence:update", { bookId, users });
+    io.to(roomName).emit("presence:update", {
+      bookId,
+      users: getBookPresenceList(bookId),
+    });
   });
 
+  // 🚪 Leave book
   socket.on("book:leave", ({ bookId }: { bookId: number }) => {
     if (!bookId) return;
 
@@ -112,15 +128,17 @@ io.on("connection", (socket) => {
 
     bookPresence.get(bookId)?.delete(socket.id);
 
-    const users = getBookPresenceList(bookId);
-    io.to(roomName).emit("presence:update", { bookId, users });
+    io.to(roomName).emit("presence:update", {
+      bookId,
+      users: getBookPresenceList(bookId),
+    });
   });
 
+  // 🔌 Disconnect
   socket.on("disconnect", () => {
-    console.log(
-      `Socket disconnected: ${user?.username ?? "unknown"} (${socket.id})`
-    );
+    console.log(`🔴 Socket disconnected: ${user?.username} (${socket.id})`);
 
+    // cleanup editing
     for (const [noteId, username] of editingMap.entries()) {
       if (username === user?.username) {
         editingMap.delete(noteId);
@@ -128,23 +146,28 @@ io.on("connection", (socket) => {
       }
     }
 
+    // cleanup presence
     for (const [bookId, room] of bookPresence.entries()) {
       if (room.has(socket.id)) {
         room.delete(socket.id);
 
         const roomName = `book-${bookId}`;
-        const users = getBookPresenceList(bookId);
 
-        io.to(roomName).emit("presence:update", { bookId, users });
+        io.to(roomName).emit("presence:update", {
+          bookId,
+          users: getBookPresenceList(bookId),
+        });
       }
     }
   });
 });
 
+// ✅ Health route
 app.get("/", (_req, res) => {
   res.send("API is running");
 });
 
+// ✅ Start server
 httpServer.listen(port, () => {
-  console.log(`Server listening on port ${port} with Socket.IO`);
+  console.log(`Server listening on http://localhost:${port}`);
 });

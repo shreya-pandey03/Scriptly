@@ -1,46 +1,48 @@
-import { ReactNode, useEffect } from "react"
-import { Link, useLocation } from "wouter"
-import { useAuthStore } from "@/store/use-auth"
-import { useCollabStore } from "@/store/use-collab"
-import { useThemeStore } from "@/store/use-theme"
-import { Library, Search, LogOut, Moon, Sun } from "lucide-react"
-import { PageTransition } from "./ui"
+import { ReactNode, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { useAuthStore } from "@/store/use-auth";
+import { useCollabStore } from "@/store/use-collab";
+import { useThemeStore } from "@/store/use-theme";
+import { Library, Search, LogOut, Moon, Sun } from "lucide-react";
+import { PageTransition } from "./ui";
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { user, logout, isAuthenticated } = useAuthStore()
-  const { connect, disconnect } = useCollabStore()
-  const { theme, toggle } = useThemeStore()
-  const [, setLocation] = useLocation()
+  const { user, logout, isAuthenticated } = useAuthStore();
+  const { connect, disconnect } = useCollabStore();
+  const { theme, toggle } = useThemeStore();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
-      connect()
+      connect();
     } else {
-      disconnect()
+      disconnect();
     }
-  }, [isAuthenticated, connect, disconnect])
+  }, [isAuthenticated, connect, disconnect]);
 
   const handleLogout = () => {
-    disconnect()
-    logout()
-    setLocation("/login")
-  }
+    disconnect();
+    logout();
+    setLocation("/login");
+  };
 
-  if (!isAuthenticated) return <>{children}</>
+  if (!isAuthenticated) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-background flex flex-col font-sans">
       <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/">
-            <a className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity">
-              <div className="bg-primary/10 p-2 rounded-xl text-primary">
-                <Library className="w-5 h-5" />
-              </div>
-              <span className="font-serif font-bold text-xl tracking-tight hidden sm:inline-block">
-                BookNotes
-              </span>
-            </a>
+        
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-foreground hover:opacity-80 transition-opacity"
+          >
+            <div className="bg-primary/10 p-2 rounded-xl text-primary">
+              <Library className="w-5 h-5" />
+            </div>
+            <span className="font-serif font-bold text-xl tracking-tight hidden sm:inline-block">
+              BookNotes
+            </span>
           </Link>
 
           <nav className="flex items-center gap-2 sm:gap-3">
@@ -98,5 +100,5 @@ export function Layout({ children }: { children: ReactNode }) {
         <PageTransition>{children}</PageTransition>
       </main>
     </div>
-  )
+  );
 }
