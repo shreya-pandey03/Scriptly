@@ -36,6 +36,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.11.30",
+    "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "0.27.3",
     "tsx": "^4.7.1",
