@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
+import { db, users } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signToken } from "../lib/jwt.js";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
@@ -31,8 +31,8 @@ router.post("/register", async (req, res) => {
 
     const existing = await db
       .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email))
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
 
     if (existing.length > 0) {
@@ -42,8 +42,8 @@ router.post("/register", async (req, res) => {
 
     const existingUsername = await db
       .select()
-      .from(usersTable)
-      .where(eq(usersTable.username, username))
+      .from(users)
+      .where(eq(users.username, username))
       .limit(1);
 
     if (existingUsername.length > 0) {
@@ -54,7 +54,7 @@ router.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const [user] = await db
-      .insert(usersTable)
+      .insert(users)
       .values({ username, email, passwordHash })
       .returning();
 
@@ -92,8 +92,8 @@ router.post("/login", async (req, res) => {
 
     const [user] = await db
       .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email))
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
 
     if (!user) {
@@ -132,8 +132,8 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
   try {
     const [user] = await db
       .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.user!.userId))
+      .from(users)
+      .where(eq(users.id, req.user!.userId))
       .limit(1);
 
     if (!user) {
